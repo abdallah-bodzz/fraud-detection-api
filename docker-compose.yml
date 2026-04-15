@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  fraud-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PREDICTION_THRESHOLD=0.4
+    restart: unless-stopped
