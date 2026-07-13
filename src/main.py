@@ -27,8 +27,8 @@ DASHBOARD_PATH = STATIC_DIR / "dashboard.html"
 # Simple sliding-window counter. Good enough for a demo/CV project.
 # In production: replace with Redis + a proper middleware.
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
-RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", 60))   # requests
-RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", 60))        # seconds
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", 60))  # requests
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", 60))  # seconds
 
 
 def _check_rate_limit(client_ip: str) -> None:
@@ -43,8 +43,7 @@ def _check_rate_limit(client_ip: str) -> None:
     if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_REQUESTS:
         logger.warning(f"Rate limit exceeded for {client_ip}")
         detail = (
-            f"Rate limit exceeded: max {RATE_LIMIT_REQUESTS} "
-            f"requests per {RATE_LIMIT_WINDOW}s."
+            f"Rate limit exceeded: max {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW}s."
         )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -91,8 +90,7 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     duration_ms = (time.time() - start) * 1000
     logger.info(
-        f"{request.method} {request.url.path} → "
-        f"{response.status_code} ({duration_ms:.1f}ms)"
+        f"{request.method} {request.url.path} → {response.status_code} ({duration_ms:.1f}ms)"
     )
     return response
 

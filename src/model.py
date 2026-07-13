@@ -21,11 +21,7 @@ from src.schemas import PredictionResponse, TransactionInput
 from src.utils import logger
 
 # ── Feature order must match training exactly ──────────────────────────────
-FEATURE_COLUMNS = (
-    ["Time"]
-    + [f"V{i}" for i in range(1, 29)]
-    + ["Amount"]
-)
+FEATURE_COLUMNS = ["Time"] + [f"V{i}" for i in range(1, 29)] + ["Amount"]
 
 
 class FraudDetectionModel:
@@ -48,8 +44,7 @@ class FraudDetectionModel:
             )
         if not Path(SCALER_PATH).exists():
             raise FileNotFoundError(
-                f"Scaler not found at {SCALER_PATH}. "
-                "Run `python train_model.py` first."
+                f"Scaler not found at {SCALER_PATH}. Run `python train_model.py` first."
             )
 
         self.model = joblib.load(MODEL_PATH)
@@ -96,9 +91,7 @@ class FraudDetectionModel:
             risk_level = "HIGH"
 
         # ── 6. Business-framed note ────────────────────────────────────────
-        business_note = _build_business_note(
-            fraud_prob, is_fraud, transaction.Amount
-        )
+        business_note = _build_business_note(fraud_prob, is_fraud, transaction.Amount)
 
         logger.info(
             f"Prediction | amount=${transaction.Amount:.2f} | "
@@ -122,7 +115,7 @@ def _build_business_note(prob: float, is_fraud: bool, amount: float) -> str:
     """
     if is_fraud:
         return (
-            f"Transaction flagged for review. Model is {prob*100:.1f}% confident "
+            f"Transaction flagged for review. Model is {prob * 100:.1f}% confident "
             f"this is fraudulent. Blocking protects an estimated ${amount:.2f} "
             f"against a review cost of ~${FALSE_POSITIVE_COST_USD:.2f} — "
             f"economically justified above any probability > "
@@ -130,8 +123,8 @@ def _build_business_note(prob: float, is_fraud: bool, amount: float) -> str:
         )
     else:
         return (
-            f"Transaction approved. Fraud probability is {prob*100:.1f}% — "
-            f"below the {PREDICTION_THRESHOLD*100:.0f}% decision threshold. "
+            f"Transaction approved. Fraud probability is {prob * 100:.1f}% — "
+            f"below the {PREDICTION_THRESHOLD * 100:.0f}% decision threshold. "
             f"At this confidence level, blocking would cause unnecessary "
             f"customer friction for a legitimate transaction."
         )

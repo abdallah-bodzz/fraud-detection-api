@@ -240,5 +240,5 @@ class TestRateLimiting:
         api_client.post("/predict_transaction", json=valid_transaction_payload)
 
         assert len(main_module._rate_limit_store) == 1
-        (_, timestamps), = main_module._rate_limit_store.items()
+        ((_, timestamps),) = main_module._rate_limit_store.items()
         assert len(timestamps) == 2

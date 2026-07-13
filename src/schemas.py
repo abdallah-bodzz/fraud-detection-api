@@ -80,7 +80,7 @@ class TransactionInput(BaseModel):
                 "V26": -0.189114843888824,
                 "V27": 0.133558376740387,
                 "V28": -0.0210530534538215,
-                "Amount": 149.62
+                "Amount": 149.62,
             }
         }
     }
@@ -92,12 +92,18 @@ class PredictionResponse(BaseModel):
     We never just return a number — we return what it means.
     """
 
-    fraud_probability: float = Field(..., description="Model confidence that this transaction is fraudulent (0–1)")
+    fraud_probability: float = Field(
+        ..., description="Model confidence that this transaction is fraudulent (0–1)"
+    )
     is_fraud: bool = Field(..., description="Classification at configured threshold")
     threshold_used: float = Field(..., description="Decision threshold applied")
-    risk_level: Literal["LOW", "MEDIUM", "HIGH"] = Field(..., description="Human-readable risk band")
+    risk_level: Literal["LOW", "MEDIUM", "HIGH"] = Field(
+        ..., description="Human-readable risk band"
+    )
     business_note: str = Field(..., description="Business-framed interpretation of this prediction")
-    transaction_amount: float = Field(..., description="Amount from input, echoed for logging convenience")
+    transaction_amount: float = Field(
+        ..., description="Amount from input, echoed for logging convenience"
+    )
 
 
 class HealthResponse(BaseModel):

@@ -16,18 +16,19 @@ What this script does:
 """
 
 import sys
+from pathlib import Path
+
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
-from pathlib import Path
+from sklearn.metrics import (
+    average_precision_score,
+    classification_report,
+    confusion_matrix,
+    precision_recall_curve,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import (
-    precision_recall_curve,
-    average_precision_score,
-    confusion_matrix,
-    classification_report,
-)
 from xgboost import XGBClassifier
 
 # ── Config ─────────────────────────────────────────────────────────────────
@@ -36,8 +37,8 @@ MODEL_PATH = Path("models/fraud_model.joblib")
 SCALER_PATH = Path("models/scaler.joblib")
 
 # Business cost assumptions
-AVG_FRAUD_AMOUNT = 122.21    # mean transaction amount for fraud cases
-REVIEW_COST = 2.00           # cost of manually reviewing a flagged transaction
+AVG_FRAUD_AMOUNT = 122.21  # mean transaction amount for fraud cases
+REVIEW_COST = 2.00  # cost of manually reviewing a flagged transaction
 
 RANDOM_STATE = 42
 
@@ -87,8 +88,10 @@ def train(X_train, y_train) -> XGBClassifier:
     n_pos = (y_train == 1).sum()
     scale_pos_weight = n_neg / n_pos
 
-    print(f"\n[TRAIN] scale_pos_weight = {scale_pos_weight:.1f} "
-          f"(1 fraud per {int(scale_pos_weight)} legit)")
+    print(
+        f"\n[TRAIN] scale_pos_weight = {scale_pos_weight:.1f} "
+        f"(1 fraud per {int(scale_pos_weight)} legit)"
+    )
 
     model = XGBClassifier(
         n_estimators=200,
@@ -97,14 +100,15 @@ def train(X_train, y_train) -> XGBClassifier:
         scale_pos_weight=scale_pos_weight,
         subsample=0.8,
         colsample_bytree=0.8,
-        eval_metric="aucpr",         # AUPRC — correct metric for imbalanced data
+        eval_metric="aucpr",  # AUPRC — correct metric for imbalanced data
         random_state=RANDOM_STATE,
         n_jobs=-1,
         verbosity=0,
     )
 
     model.fit(
-        X_train, y_train,
+        X_train,
+        y_train,
         eval_set=[(X_train, y_train)],
         verbose=False,
     )
@@ -144,18 +148,20 @@ def tune_threshold_by_business_value(
         missed_fraud = fn * avg_fraud_amount
         net_value = value_saved - review_costs
 
-        rows.append({
-            "threshold": round(thresh, 3),
-            "precision": round(prec, 4),
-            "recall": round(rec, 4),
-            "tp": int(tp),
-            "fp": int(fp),
-            "fn": int(fn),
-            "value_saved_usd": round(value_saved, 2),
-            "review_cost_usd": round(review_costs, 2),
-            "missed_fraud_usd": round(missed_fraud, 2),
-            "net_value_usd": round(net_value, 2),
-        })
+        rows.append(
+            {
+                "threshold": round(thresh, 3),
+                "precision": round(prec, 4),
+                "recall": round(rec, 4),
+                "tp": int(tp),
+                "fp": int(fp),
+                "fn": int(fn),
+                "value_saved_usd": round(value_saved, 2),
+                "review_cost_usd": round(review_costs, 2),
+                "missed_fraud_usd": round(missed_fraud, 2),
+                "net_value_usd": round(net_value, 2),
+            }
+        )
 
     results_df = pd.DataFrame(rows)
     best_idx = results_df["net_value_usd"].idxmax()
@@ -172,33 +178,33 @@ def evaluate(model, X_test, y_test, threshold: float):
     cm = confusion_matrix(y_test, y_pred)
     tn, fp, fn, tp = cm.ravel()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("EVALUATION RESULTS")
-    print("="*60)
+    print("=" * 60)
     print(f"\n[METRIC] AUPRC (Area Under Precision-Recall Curve): {auprc:.4f}")
     print(f"         (Baseline for random classifier: {y_test.mean():.4f})")
     print(f"\n[THRESHOLD] Using {threshold:.2f} (tuned for business value)")
-    print(f"\n[CONFUSION MATRIX]")
+    print("\n[CONFUSION MATRIX]")
     print(f"  True Positives  (fraud caught):       {tp:>6,}")
     print(f"  False Positives (legit flagged):       {fp:>6,}")
     print(f"  False Negatives (fraud missed):        {fn:>6,}")
     print(f"  True Negatives  (legit approved):      {tn:>6,}")
 
-    print(f"\n[BUSINESS IMPACT — test set]")
-    value_blocked  = tp * AVG_FRAUD_AMOUNT
-    review_costs   = fp * REVIEW_COST
-    missed_losses  = fn * AVG_FRAUD_AMOUNT
-    net_value      = value_blocked - review_costs
+    print("\n[BUSINESS IMPACT — test set]")
+    value_blocked = tp * AVG_FRAUD_AMOUNT
+    review_costs = fp * REVIEW_COST
+    missed_losses = fn * AVG_FRAUD_AMOUNT
+    net_value = value_blocked - review_costs
 
     print(f"  Fraud value blocked:    ${value_blocked:>10,.2f}")
     print(f"  Review costs incurred:  ${review_costs:>10,.2f}")
     print(f"  Fraud missed (losses):  ${missed_losses:>10,.2f}")
-    print(f"  ─────────────────────────────────────")
+    print("  ─────────────────────────────────────")
     print(f"  Net value protected:    ${net_value:>10,.2f}")
 
-    print(f"\n[CLASSIFICATION REPORT]")
+    print("\n[CLASSIFICATION REPORT]")
     print(classification_report(y_test, y_pred, target_names=["Legit", "Fraud"]))
-    print("="*60)
+    print("=" * 60)
 
 
 def main():
@@ -214,7 +220,8 @@ def main():
 
     # 3. Split (stratified — preserve class ratio in both sets)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
+        X,
+        y,
         test_size=0.2,
         random_state=RANDOM_STATE,
         stratify=y,

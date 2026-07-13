@@ -73,7 +73,9 @@ class TestModelLoading:
         import src.model as model_module
 
         fresh_instance = model_module.FraudDetectionModel()
-        transaction = TransactionInput(**{f"V{i}": 0.0 for i in range(1, 29)}, Time=0.0, Amount=10.0)
+        transaction = TransactionInput(
+            **{f"V{i}": 0.0 for i in range(1, 29)}, Time=0.0, Amount=10.0
+        )
 
         with pytest.raises(RuntimeError, match="Model not loaded"):
             fresh_instance.predict(transaction)
@@ -98,7 +100,9 @@ class TestPrediction:
 
         assert 0.0 <= result.fraud_probability <= 1.0
 
-    def test_transaction_amount_echoed_correctly(self, loaded_fraud_model, valid_transaction_payload):
+    def test_transaction_amount_echoed_correctly(
+        self, loaded_fraud_model, valid_transaction_payload
+    ):
         transaction = TransactionInput(**valid_transaction_payload)
         result = loaded_fraud_model.predict(transaction)
 

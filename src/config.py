@@ -56,5 +56,5 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 PREDICTION_THRESHOLD = float(os.getenv("PREDICTION_THRESHOLD", 0.4))
 
 # ── Business cost assumptions (used in monitoring logs) ───────────────────
-AVG_FRAUD_AMOUNT_USD = 122.21   # mean Amount where Class=1 in training data
+AVG_FRAUD_AMOUNT_USD = 122.21  # mean Amount where Class=1 in training data
 FALSE_POSITIVE_COST_USD = 2.00  # estimated manual review cost per flagged tx
