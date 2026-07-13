@@ -138,7 +138,7 @@ def tune_threshold_by_business_value(
     n_fraud_total = y_true.sum()
 
     rows = []
-    for thresh, prec, rec in zip(thresholds, precision[:-1], recall[:-1]):
+    for thresh, prec, rec in zip(thresholds, precision[:-1], recall[:-1], strict=True):
         tp = rec * n_fraud_total
         fp = (tp / prec) - tp if prec > 0 else 0
         fn = n_fraud_total - tp

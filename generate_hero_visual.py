@@ -571,7 +571,7 @@ def build_hero(
     values = [fraud_value_blocked, review_cost, net_value]
     colors = [ACCENT, DANGER, "#6B6B63"]
     bars = biz_ax.barh(categories, values, color=colors, height=0.5, zorder=3)
-    for bar, val in zip(bars, values):
+    for bar, val in zip(bars, values, strict=True):
         biz_ax.text(
             val + max(values) * 0.02,
             bar.get_y() + bar.get_height() / 2,
