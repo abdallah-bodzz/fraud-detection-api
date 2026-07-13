@@ -7,3 +7,18 @@ services:
     environment:
       - PREDICTION_THRESHOLD=0.4
     restart: unless-stopped
+    healthcheck:
+      # Uses the stdlib http.client rather than curl/wget — the base image
+      # (python:3.11-slim) doesn't ship either by default, and adding one
+      # would mean an extra apt-get layer just to support this check.
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import http.client,sys; c=http.client.HTTPConnection('localhost',8000,timeout=3); c.request('GET','/health'); r=c.getresponse(); sys.exit(0 if r.status==200 else 1)"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
