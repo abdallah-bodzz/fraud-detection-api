@@ -8,3 +8,11 @@ logs/
 .ipynb_checkpoints/
 .DS_Store
 *.log
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+data/
+logs/
+notebooks/temp/
+notebooks/__pycache__/
