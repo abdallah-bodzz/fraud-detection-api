@@ -16,3 +16,5 @@ data/
 logs/
 notebooks/temp/
 notebooks/__pycache__/
+
+.vscode/
