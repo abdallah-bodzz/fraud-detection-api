@@ -5,8 +5,9 @@ Pydantic models for input validation and response shaping.
 FastAPI uses these automatically for docs and validation.
 """
 
-from pydantic import BaseModel, Field, model_validator
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class TransactionInput(BaseModel):

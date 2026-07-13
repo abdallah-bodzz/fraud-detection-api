@@ -6,7 +6,9 @@ One import everywhere: from src.utils import logger
 """
 
 import sys
+
 from loguru import logger
+
 from src.config import LOG_LEVEL
 
 # Remove default handler, add structured one

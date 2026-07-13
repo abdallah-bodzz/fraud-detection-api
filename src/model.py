@@ -5,15 +5,20 @@ All ML logic: loading artifacts and running predictions.
 The API layer (main.py) never touches numpy or joblib directly.
 """
 
-import joblib
-import numpy as np
-import pandas as pd
 from pathlib import Path
 
-from src.config import MODEL_PATH, SCALER_PATH, PREDICTION_THRESHOLD, AVG_FRAUD_AMOUNT_USD, FALSE_POSITIVE_COST_USD
-from src.schemas import TransactionInput, PredictionResponse
-from src.utils import logger
+import joblib
+import pandas as pd
 
+from src.config import (
+    AVG_FRAUD_AMOUNT_USD,
+    FALSE_POSITIVE_COST_USD,
+    MODEL_PATH,
+    PREDICTION_THRESHOLD,
+    SCALER_PATH,
+)
+from src.schemas import PredictionResponse, TransactionInput
+from src.utils import logger
 
 # ── Feature order must match training exactly ──────────────────────────────
 FEATURE_COLUMNS = (
