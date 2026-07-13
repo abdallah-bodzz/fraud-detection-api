@@ -5,19 +5,23 @@ FastAPI application entry point.
 Run with: uvicorn src.main:app --reload
 """
 
-import time
 import os
-from contextlib import asynccontextmanager
+import time
 from collections import defaultdict
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-from src.schemas import TransactionInput, PredictionResponse, HealthResponse
+from src.config import PREDICTION_THRESHOLD
 from src.model import fraud_model
-from src.config import PREDICTION_THRESHOLD, LOG_LEVEL
+from src.schemas import HealthResponse, PredictionResponse, TransactionInput
 from src.utils import logger
 
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+DASHBOARD_PATH = STATIC_DIR / "dashboard.html"
 
 # ── Rate limiting (in-memory, single-process) ──────────────────────────────
 # Simple sliding-window counter. Good enough for a demo/CV project.
@@ -38,9 +42,13 @@ def _check_rate_limit(client_ip: str) -> None:
 
     if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_REQUESTS:
         logger.warning(f"Rate limit exceeded for {client_ip}")
+        detail = (
+            f"Rate limit exceeded: max {RATE_LIMIT_REQUESTS} "
+            f"requests per {RATE_LIMIT_WINDOW}s."
+        )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Rate limit exceeded: max {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW}s.",
+            detail=detail,
         )
 
     _rate_limit_store[client_ip].append(now)
@@ -90,6 +98,20 @@ async def log_requests(request: Request, call_next):
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def dashboard():
+    """
+    Serves the branded dashboard as the landing page. The interactive API
+    reference (Swagger UI) remains available at /docs — this route exists
+    alongside it, not instead of it, since developers integrating against
+    the API still need the schema-driven reference.
+    """
+    return FileResponse(DASHBOARD_PATH)
+
+
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
     """Liveness check. Returns whether the model is loaded and ready."""
@@ -127,13 +149,13 @@ async def predict_transaction(transaction: TransactionInput, request: Request):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Model is not ready. Try again shortly.",
-        )
+        ) from e
     except Exception as e:
         logger.error(f"Unexpected error during prediction: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An internal error occurred. Check logs.",
-        )
+        ) from e
 
     return result
 
@@ -141,5 +163,7 @@ async def predict_transaction(transaction: TransactionInput, request: Request):
 # ── Run directly (for dev) ─────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
+
     from src.config import API_HOST, API_PORT
+
     uvicorn.run("src.main:app", host=API_HOST, port=API_PORT, reload=True)

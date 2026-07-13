@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fraud Detection API — Dashboard</title>
+<meta name="description" content="Submit a transaction and get a business-framed fraud decision.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%233170AE'/%3E%3Cpath d='M12 4L6 7v4c0 4 2.6 7.1 6 8 3.4-.9 6-4 6-8V7l-6-3z' fill='none' stroke='white' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M9.3 12l1.7 1.7 3.4-3.7' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f6f8fb">
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --border: #e1e7f0;
+    --border-strong: #c9d4e3;
+    --ink: #17233b;
+    --ink-muted: #5b6b85;
+    --ink-faint: #63728c;
+    --accent: #4a90d9;
+    --accent-strong: #3170ae;
+    --accent-ink: #1f5c96;
+    --accent-bg: #eaf2fb;
+    --legit: #166a49;
+    --legit-bg: #e7f5ee;
+    --fraud: #a32e2e;
+    --fraud-bg: #fbebeb;
+    --risk-low: #166a49;
+    --risk-low-bg: #e7f5ee;
+    --risk-medium: #946006;
+    --risk-medium-bg: #fbf1e2;
+    --risk-high: #a32e2e;
+    --risk-high-bg: #fbebeb;
+    --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --radius: 10px;
+    --radius-sm: 7px;
+  }
+
+  * { box-sizing: border-box; }
+
+  /* Native number spinner arrows read as unstyled browser chrome next to
+     the rest of this interface — removed in favour of plain numeric
+     entry, consistent with the monospace/tabular-nums treatment used
+     for every other number on the page. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-strong);
+    outline-offset: 2px;
+  }
+  /* Inputs already carry a focus ring via box-shadow; a duplicate outline
+     would double up, so it's suppressed there specifically. */
+  .field input:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────── */
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+  .brand-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 15px; height: 15px; }
+  .brand-sub {
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out);
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ink-faint);
+    transition: background 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  }
+  .status-pill[data-state="online"] {
+    border-color: #cfe8db;
+    background: var(--legit-bg);
+    color: var(--legit);
+  }
+  .status-pill[data-state="online"] .status-dot {
+    background: var(--legit);
+    box-shadow: 0 0 0 3px rgba(31, 138, 95, 0.15);
+  }
+  .status-pill[data-state="offline"] {
+    border-color: #f0d3d3;
+    background: var(--fraud-bg);
+    color: var(--fraud);
+  }
+  .status-pill[data-state="offline"] .status-dot { background: var(--fraud); }
+  .status-thresh {
+    color: inherit;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  main {
+    flex: 1;
+    max-width: 1120px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 36px 24px 64px;
+  }
+
+  .page-head {
+    margin-bottom: 28px;
+  }
+  .page-head h1 {
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    margin: 0 0 6px;
+  }
+  .page-head p {
+    font-size: 14px;
+    color: var(--ink-muted);
+    margin: 0;
+    max-width: 56ch;
+    line-height: 1.5;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px 22px;
+    animation: card-in 320ms var(--ease-out) both;
+  }
+  .card:nth-of-type(2) { animation-delay: 60ms; }
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+  .card-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .mode-switch {
+    display: inline-flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .mode-switch button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-faint);
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+  }
+  .mode-switch button[aria-pressed="true"] {
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(23, 35, 59, 0.06);
+  }
+  .mode-switch button:hover:not([aria-pressed="true"]) { color: var(--ink-muted); }
+
+  /* ── Form mode ───────────────────────────────────────────────── */
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    letter-spacing: 0.01em;
+  }
+  .field input {
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--ink);
+    width: 100%;
+    transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
+  }
+  .field input:hover { border-color: var(--border-strong); }
+  .field input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--card);
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.14);
+  }
+  .field input.invalid {
+    border-color: #d99a9a;
+    background: var(--fraud-bg);
+  }
+  .field input.invalid:focus {
+    border-color: var(--fraud);
+    box-shadow: 0 0 0 3px rgba(163, 46, 46, 0.12);
+  }
+  .field.wide { grid-column: 1 / -1; }
+  .pca-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px 10px;
+    margin-top: 4px;
+  }
+  @media (max-width: 520px) {
+    .pca-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .pca-grid .field label { font-size: 10.5px; }
+  .pca-grid .field input { padding: 6px 8px; font-size: 12px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 16px 0 8px;
+  }
+
+  /* ── JSON mode ───────────────────────────────────────────────── */
+  textarea#json-input {
+    width: 100%;
+    min-height: 320px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--ink);
+    resize: vertical;
+    transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
+  }
+  textarea#json-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--card);
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.14);
+  }
+  .json-error {
+    font-size: 12px;
+    color: var(--fraud);
+    font-family: var(--mono);
+    margin-top: 8px;
+    display: none;
+  }
+  .json-error.visible { display: block; }
+
+  /* ── Actions ─────────────────────────────────────────────────── */
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .btn {
+    appearance: none;
+    border: none;
+    font: inherit;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    padding: 10px 18px;
+    transition: transform 100ms var(--ease-out), background 140ms var(--ease-out), opacity 140ms var(--ease-out);
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent-strong);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--accent-ink); }
+  .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--border-strong); color: var(--ink); }
+
+  .btn-spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    margin-right: 7px;
+    vertical-align: -2px;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+  .btn-primary.loading .btn-spinner { display: inline-block; }
+  .btn-primary.loading .btn-label { opacity: 0.9; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .sample-row {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .sample-row button {
+    font-size: 12px;
+    color: var(--accent-ink);
+    background: var(--accent-bg);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 140ms var(--ease-out);
+  }
+  .sample-row button:hover { background: #dceafa; }
+
+  /* ── Result panel ────────────────────────────────────────────── */
+  .result-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 56px 20px;
+    color: var(--ink-faint);
+    min-height: 320px;
+  }
+  .result-empty svg { width: 34px; height: 34px; margin-bottom: 14px; opacity: 0.5; }
+  .result-empty p { font-size: 13px; margin: 0; max-width: 30ch; line-height: 1.5; }
+
+  .result-body {
+    opacity: 0;
+    transform: scale(0.96);
+    transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+  }
+  .result-body.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .verdict-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .badge-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 650;
+    padding: 5px 11px;
+    border-radius: 999px;
+    letter-spacing: 0.01em;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .badge-legit { background: var(--legit-bg); color: var(--legit); }
+  .badge-fraud { background: var(--fraud-bg); color: var(--fraud); }
+  .badge-risk-low { background: var(--risk-low-bg); color: var(--risk-low); }
+  .badge-risk-medium { background: var(--risk-medium-bg); color: var(--risk-medium); }
+  .badge-risk-high { background: var(--risk-high-bg); color: var(--risk-high); }
+
+  .prob-display {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .prob-value {
+    font-family: var(--mono);
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .prob-label {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  .prob-bar-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin: 14px 0 22px;
+    position: relative;
+  }
+  .prob-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    width: 0%;
+    transition: width 480ms var(--ease-out);
+  }
+  .prob-bar-thresh {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    background: var(--ink);
+    opacity: 0.35;
+    cursor: help;
+  }
+  .prob-bar-thresh::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%) translateY(2px);
+    background: var(--ink);
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
+  }
+  .prob-bar-thresh:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .metric-row:first-of-type { border-top: none; }
+  .metric-label { color: var(--ink-muted); }
+  .metric-value {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .business-note {
+    margin-top: 16px;
+    padding: 13px 15px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+  .business-note strong { color: var(--ink); font-weight: 600; }
+
+  .result-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .latency-tag {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .latency-tag svg { width: 12px; height: 12px; opacity: 0.7; }
+  .copy-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--ink-muted);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: border-color 140ms var(--ease-out), color 140ms var(--ease-out), background 140ms var(--ease-out);
+  }
+  .copy-btn svg { width: 12px; height: 12px; }
+  .copy-btn:hover { border-color: var(--border-strong); color: var(--ink); }
+  .copy-btn.copied {
+    border-color: #cfe8db;
+    background: var(--legit-bg);
+    color: var(--legit);
+  }
+
+  .result-error {
+    display: none;
+    padding: 16px 18px;
+    background: var(--fraud-bg);
+    border-radius: var(--radius-sm);
+    color: var(--fraud);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .result-error.visible { display: block; }
+  .result-error code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(193, 67, 67, 0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ── History rail ────────────────────────────────────────────── */
+  .history-section {
+    margin-top: 28px;
+  }
+  .history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .history-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .history-clear {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: color 140ms var(--ease-out);
+  }
+  .history-clear:hover { color: var(--fraud); }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .history-empty {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    padding: 14px 2px;
+  }
+  .history-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    font: inherit;
+    transition: border-color 140ms var(--ease-out), transform 100ms var(--ease-out);
+    animation: history-in 260ms var(--ease-out);
+  }
+  .history-row:hover { border-color: var(--border-strong); }
+  .history-row:active { transform: scale(0.99); }
+  @keyframes history-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .history-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .history-dot.legit { background: var(--legit); }
+  .history-dot.fraud { background: var(--fraud); }
+  .history-amount {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .history-prob {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .history-time {
+    font-size: 11px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .footer-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ink-faint);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-inner a { color: inherit; text-decoration: none; }
+  .footer-inner a:hover { color: var(--ink-muted); }
+  .footer-links { display: flex; gap: 16px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: opacity 120ms linear !important; }
+    .result-body { transform: none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L4 6V11C4 15.5 7.2 19.7 12 21C16.8 19.7 20 15.5 20 11V6L12 2Z" stroke="white" stroke-width="1.7" stroke-linejoin="round"/>
+            <path d="M9 12L11 14L15.5 9.5" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span>Fraud Detection API<span class="brand-sub">Dashboard</span></span>
+      </div>
+      <div class="status-pill" id="status-pill" data-state="checking">
+        <span class="status-dot"></span>
+        <span id="status-text">Checking&hellip;</span>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="page-head">
+      <h1>Score a transaction</h1>
+      <p>Submit a transaction's features and get a fraud probability, decision, and the business reasoning behind it &mdash; the same pipeline the <code style="font-family: var(--mono); font-size: 12.5px; background: var(--accent-bg); padding: 1px 5px; border-radius: 4px; color: var(--accent-ink);">/predict_transaction</code> endpoint runs in production.</p>
+    </div>
+
+    <div class="grid">
+
+      <!-- Input card -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Transaction input</span>
+          <div class="mode-switch" role="tablist" aria-label="Input mode">
+            <button type="button" id="mode-form-btn" aria-pressed="true" role="tab">Form</button>
+            <button type="button" id="mode-json-btn" aria-pressed="false" role="tab">JSON</button>
+          </div>
+        </div>
+
+        <!-- Form mode -->
+        <div id="mode-form">
+          <div class="field-grid">
+            <div class="field">
+              <label for="f-time">TIME</label>
+              <input type="number" step="any" id="f-time" value="0">
+            </div>
+            <div class="field">
+              <label for="f-amount">AMOUNT</label>
+              <input type="number" step="any" id="f-amount" value="149.62">
+            </div>
+          </div>
+
+          <div class="section-label">PCA features (V1&ndash;V28)</div>
+          <div class="pca-grid" id="pca-grid"></div>
+        </div>
+
+        <!-- JSON mode -->
+        <div id="mode-json" style="display:none;">
+          <textarea id="json-input" spellcheck="false"></textarea>
+          <div class="json-error" id="json-error"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="predict-btn">
+            <span class="btn-spinner"></span><span class="btn-label">Predict</span>
+          </button>
+          <span id="kbd-hint" style="font-size: 11px; color: var(--ink-faint); font-family: var(--mono);">&#8984;&#8629;</span>
+          <div class="sample-row">
+            <button type="button" id="sample-legit">Load legit sample</button>
+            <button type="button" id="sample-fraud">Load high-risk sample</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result card -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Prediction result</span>
+        </div>
+
+        <div class="result-error" id="result-error"></div>
+
+        <div class="result-empty" id="result-empty">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+          <p>Submit a transaction to see the fraud probability, decision, and risk band here.</p>
+        </div>
+
+        <div class="result-body" id="result-body">
+          <div class="verdict-row">
+            <div class="badge-group">
+              <span class="badge" id="badge-verdict"></span>
+              <span class="badge" id="badge-risk"></span>
+            </div>
+          </div>
+
+          <div class="prob-display">
+            <span class="prob-value" id="prob-value">0.00%</span>
+            <span class="prob-label">fraud probability</span>
+          </div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill" id="prob-bar-fill"></div>
+            <div class="prob-bar-thresh" id="prob-bar-thresh"></div>
+          </div>
+
+          <div class="metric-row">
+            <span class="metric-label">Decision threshold</span>
+            <span class="metric-value" id="metric-threshold">&mdash;</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Transaction amount</span>
+            <span class="metric-value" id="metric-amount">&mdash;</span>
+          </div>
+
+          <div class="business-note" id="business-note"></div>
+
+          <div class="result-meta">
+            <span class="latency-tag" id="latency-tag">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7V12L15.5 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <span id="latency-value">&mdash;</span>
+            </span>
+            <button class="copy-btn" id="copy-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.6"/></svg>
+              <span id="copy-btn-label">Copy JSON</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="history-section">
+      <div class="history-head">
+        <span class="history-title">Recent predictions</span>
+        <button class="history-clear" id="history-clear" type="button">Clear</button>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty" id="history-empty">Predictions from this session will appear here &mdash; click one to reload it.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span>Fraud Detection API &middot; BODZZ &middot; Abdallah A Khames</span>
+      <div class="footer-links">
+        <a href="/docs">API reference</a>
+        <a href="https://github.com/abdallah-bodzz/fraud-detection-api" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+<script>
+(function () {
+  'use strict';
+
+  function markValidity(input) {
+    var isEmpty = input.value.trim() === '';
+    var isValid = !isEmpty && !isNaN(parseFloat(input.value));
+    input.classList.toggle('invalid', !isValid);
+    return isValid;
+  }
+
+  function attachValidation(input) {
+    input.addEventListener('blur', function () { markValidity(input); });
+    input.addEventListener('input', function () {
+      if (input.classList.contains('invalid')) markValidity(input);
+    });
+  }
+
+  var PCA_COUNT = 28;
+  var pcaGrid = document.getElementById('pca-grid');
+  var pcaInputs = {};
+
+  for (var i = 1; i <= PCA_COUNT; i++) {
+    var field = document.createElement('div');
+    field.className = 'field';
+    var label = document.createElement('label');
+    label.setAttribute('for', 'f-v' + i);
+    label.textContent = 'V' + i;
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.step = 'any';
+    input.id = 'f-v' + i;
+    input.value = '0';
+    field.appendChild(label);
+    field.appendChild(input);
+    pcaGrid.appendChild(field);
+    pcaInputs['V' + i] = input;
+    attachValidation(input);
+  }
+
+  // ── Keyboard shortcut hint (platform-aware) ───────────────────────
+  var isMac = /Mac|iPhone|iPad/.test(window.navigator.platform || window.navigator.userAgent);
+  var kbdHint = document.getElementById('kbd-hint');
+  if (kbdHint) kbdHint.textContent = isMac ? '\u2318\u23ce' : 'Ctrl+Enter';
+
+  attachValidation(document.getElementById('f-time'));
+  attachValidation(document.getElementById('f-amount'));
+
+  var SAMPLES = {
+    legit: {
+      Time: 0, V1: -1.3598071336738, V2: -0.0727811733098497, V3: 2.53634673796914,
+      V4: 1.37815522427443, V5: -0.338320769942518, V6: 0.462387777762292,
+      V7: 0.239598554061257, V8: 0.0986979012610507, V9: 0.363786969611213,
+      V10: 0.0907941719789316, V11: -0.551599533260813, V12: -0.617800855762348,
+      V13: -0.991389847235408, V14: -0.311169353699879, V15: 1.46817697209427,
+      V16: -0.470400525259478, V17: 0.207971241929242, V18: 0.0257905801985591,
+      V19: 0.403992960255733, V20: 0.251412098239705, V21: -0.018306777944153,
+      V22: 0.277837575558899, V23: -0.110473910188767, V24: 0.0669280749146731,
+      V25: 0.128539358273528, V26: -0.189114843888824, V27: 0.133558376740387,
+      V28: -0.0210530534538215, Amount: 149.62
+    },
+    fraud: {
+      Time: 40000, V1: -3.2, V2: 2.9, V3: -6.8, V4: 4.1, V5: -3.9, V6: -1.2,
+      V7: -5.4, V8: 1.1, V9: -2.6, V10: -5.1, V11: 3.6, V12: -6.2, V13: 0.3,
+      V14: -8.9, V15: -0.4, V16: -5.7, V17: -9.1, V18: -3.3, V19: 1.0,
+      V20: 0.6, V21: 0.4, V22: 0.6, V23: -0.1, V24: 0.1, V25: 0.2, V26: -0.2,
+      V27: 0.3, V28: 0.1, Amount: 1874.5
+    }
+  };
+
+  function fieldOrder() {
+    var order = ['Time'];
+    for (var i = 1; i <= PCA_COUNT; i++) order.push('V' + i);
+    order.push('Amount');
+    return order;
+  }
+
+  function readForm() {
+    var payload = {};
+    payload.Time = parseFloat(document.getElementById('f-time').value) || 0;
+    payload.Amount = parseFloat(document.getElementById('f-amount').value) || 0;
+    for (var i = 1; i <= PCA_COUNT; i++) {
+      var key = 'V' + i;
+      payload[key] = parseFloat(pcaInputs[key].value) || 0;
+    }
+    return payload;
+  }
+
+  function writeForm(payload) {
+    document.getElementById('f-time').value = payload.Time;
+    document.getElementById('f-amount').value = payload.Amount;
+    for (var i = 1; i <= PCA_COUNT; i++) {
+      var key = 'V' + i;
+      if (payload[key] !== undefined) pcaInputs[key].value = payload[key];
+    }
+  }
+
+  function formatJSON(payload) {
+    var order = fieldOrder();
+    var ordered = {};
+    order.forEach(function (k) { ordered[k] = payload[k]; });
+    return JSON.stringify(ordered, null, 2);
+  }
+
+  var jsonInput = document.getElementById('json-input');
+  var jsonError = document.getElementById('json-error');
+  jsonInput.value = formatJSON(SAMPLES.legit);
+
+  // ── Mode switching ─────────────────────────────────────────────
+  var modeFormBtn = document.getElementById('mode-form-btn');
+  var modeJsonBtn = document.getElementById('mode-json-btn');
+  var modeFormEl = document.getElementById('mode-form');
+  var modeJsonEl = document.getElementById('mode-json');
+  var currentMode = 'form';
+
+  function setMode(mode) {
+    if (mode === currentMode) return;
+    if (mode === 'json') {
+      jsonInput.value = formatJSON(readForm());
+    } else {
+      try {
+        var parsed = JSON.parse(jsonInput.value);
+        writeForm(parsed);
+        jsonError.classList.remove('visible');
+      } catch (e) { /* keep form as-is if JSON is currently invalid */ }
+    }
+    currentMode = mode;
+    modeFormBtn.setAttribute('aria-pressed', String(mode === 'form'));
+    modeJsonBtn.setAttribute('aria-pressed', String(mode === 'json'));
+    modeFormEl.style.display = mode === 'form' ? '' : 'none';
+    modeJsonEl.style.display = mode === 'json' ? '' : 'none';
+  }
+  modeFormBtn.addEventListener('click', function () { setMode('form'); });
+  modeJsonBtn.addEventListener('click', function () { setMode('json'); });
+
+  // ── Samples ─────────────────────────────────────────────────────
+  document.getElementById('sample-legit').addEventListener('click', function () {
+    writeForm(SAMPLES.legit);
+    jsonInput.value = formatJSON(SAMPLES.legit);
+  });
+  document.getElementById('sample-fraud').addEventListener('click', function () {
+    writeForm(SAMPLES.fraud);
+    jsonInput.value = formatJSON(SAMPLES.fraud);
+  });
+
+  // ── Health check ────────────────────────────────────────────────
+  var statusPill = document.getElementById('status-pill');
+  var statusText = document.getElementById('status-text');
+  var activeThreshold = 0.4;
+
+  function checkHealth() {
+    fetch('/health')
+      .then(function (r) { if (!r.ok) throw new Error('offline'); return r.json(); })
+      .then(function (data) {
+        activeThreshold = data.threshold;
+        statusPill.setAttribute('data-state', data.model_loaded ? 'online' : 'offline');
+        statusText.textContent = data.model_loaded
+          ? 'API online \u2014 threshold ' + data.threshold.toFixed(2)
+          : 'Model not loaded';
+      })
+      .catch(function () {
+        statusPill.setAttribute('data-state', 'offline');
+        statusText.textContent = 'API unreachable';
+      });
+  }
+  checkHealth();
+  setInterval(checkHealth, 20000);
+
+  // ── Predict ─────────────────────────────────────────────────────
+  var predictBtn = document.getElementById('predict-btn');
+  var resultEmpty = document.getElementById('result-empty');
+  var resultBody = document.getElementById('result-body');
+  var resultError = document.getElementById('result-error');
+  var lastResultPayload = null;
+  var history = [];
+  var HISTORY_LIMIT = 5;
+
+  function getPayload() {
+    if (currentMode === 'json') {
+      jsonError.classList.remove('visible');
+      try {
+        return JSON.parse(jsonInput.value);
+      } catch (e) {
+        jsonError.textContent = 'Invalid JSON: ' + e.message;
+        jsonError.classList.add('visible');
+        return null;
+      }
+    }
+    var timeValid = markValidity(document.getElementById('f-time'));
+    var amountValid = markValidity(document.getElementById('f-amount'));
+    if (!timeValid || !amountValid) return null;
+    return readForm();
+  }
+
+  function setLoading(isLoading) {
+    predictBtn.disabled = isLoading;
+    predictBtn.classList.toggle('loading', isLoading);
+  }
+
+  function showError(message) {
+    resultEmpty.style.display = 'none';
+    resultBody.classList.remove('visible');
+    resultError.textContent = message;
+    resultError.classList.add('visible');
+  }
+
+  function riskBadgeClass(level) {
+    if (level === 'LOW') return 'badge-risk-low';
+    if (level === 'MEDIUM') return 'badge-risk-medium';
+    return 'badge-risk-high';
+  }
+
+  function formatRelativeTime(timestamp) {
+    var seconds = Math.round((Date.now() - timestamp) / 1000);
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return seconds + 's ago';
+    var minutes = Math.round(seconds / 60);
+    return minutes + 'm ago';
+  }
+
+  function renderHistory() {
+    var list = document.getElementById('history-list');
+    if (history.length === 0) {
+      list.innerHTML = '<div class="history-empty" id="history-empty">Predictions from this session will appear here &mdash; click one to reload it.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    history.forEach(function (entry, idx) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'history-row';
+      row.style.animationDelay = (idx === 0 ? '0ms' : '0ms');
+      row.innerHTML =
+        '<span class="history-dot ' + (entry.result.is_fraud ? 'fraud' : 'legit') + '"></span>' +
+        '<span class="history-amount">$' + entry.result.transaction_amount.toFixed(2) + '</span>' +
+        '<span class="history-prob">' + (entry.result.fraud_probability * 100).toFixed(2) + '%</span>' +
+        '<span class="history-time">' + formatRelativeTime(entry.timestamp) + '</span>';
+      row.addEventListener('click', function () {
+        writeForm(entry.payload);
+        jsonInput.value = formatJSON(entry.payload);
+        renderResult(entry.result);
+        lastResultPayload = entry.result;
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function pushHistory(payload, result, latencyMs) {
+    history.unshift({ payload: payload, result: result, latencyMs: latencyMs, timestamp: Date.now() });
+    if (history.length > HISTORY_LIMIT) history.pop();
+    renderHistory();
+  }
+  setInterval(function () {
+    if (history.length > 0) renderHistory();
+  }, 15000);
+
+  function renderResult(data, latencyMs) {
+    resultError.classList.remove('visible');
+    resultEmpty.style.display = 'none';
+    lastResultPayload = data;
+
+    var verdictBadge = document.getElementById('badge-verdict');
+    verdictBadge.className = 'badge ' + (data.is_fraud ? 'badge-fraud' : 'badge-legit');
+    verdictBadge.innerHTML = '<span class="badge-dot"></span>' + (data.is_fraud ? 'Fraud' : 'Legit');
+
+    var riskBadge = document.getElementById('badge-risk');
+    riskBadge.className = 'badge ' + riskBadgeClass(data.risk_level);
+    riskBadge.innerHTML = '<span class="badge-dot"></span>' + data.risk_level + ' risk';
+
+    var pct = (data.fraud_probability * 100);
+    document.getElementById('prob-value').textContent = pct.toFixed(2) + '%';
+
+    var fillColor = data.is_fraud ? 'var(--fraud)' : 'var(--legit)';
+    var fill = document.getElementById('prob-bar-fill');
+    fill.style.background = fillColor;
+    var threshPct = data.threshold_used * 100;
+    var threshMarker = document.getElementById('prob-bar-thresh');
+    threshMarker.style.left = threshPct + '%';
+    threshMarker.setAttribute('data-tooltip', 'Threshold: ' + data.threshold_used.toFixed(2));
+    // Force reflow so the width transition retriggers even at 0%
+    fill.style.width = '0%';
+    requestAnimationFrame(function () {
+      fill.style.width = Math.min(pct, 100) + '%';
+    });
+
+    document.getElementById('metric-threshold').textContent = data.threshold_used.toFixed(2);
+    document.getElementById('metric-amount').textContent = '$' + data.transaction_amount.toFixed(2);
+    document.getElementById('business-note').innerHTML = data.business_note;
+
+    var latencyValue = document.getElementById('latency-value');
+    latencyValue.textContent = typeof latencyMs === 'number' ? latencyMs + 'ms' : 'replayed';
+
+    resultBody.classList.remove('visible');
+    void resultBody.offsetWidth;
+    resultBody.classList.add('visible');
+  }
+
+  // ── Copy result as JSON ────────────────────────────────────────
+  var copyBtn = document.getElementById('copy-btn');
+  var copyBtnLabel = document.getElementById('copy-btn-label');
+  copyBtn.addEventListener('click', function () {
+    if (!lastResultPayload) return;
+    var text = JSON.stringify(lastResultPayload, null, 2);
+    var done = function () {
+      copyBtn.classList.add('copied');
+      copyBtnLabel.textContent = 'Copied';
+      setTimeout(function () {
+        copyBtn.classList.remove('copied');
+        copyBtnLabel.textContent = 'Copy JSON';
+      }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {
+        copyBtnLabel.textContent = 'Copy failed';
+        setTimeout(function () { copyBtnLabel.textContent = 'Copy JSON'; }, 1400);
+      });
+    } else {
+      // Fallback for browsers without the async Clipboard API.
+      var tmp = document.createElement('textarea');
+      tmp.value = text;
+      tmp.style.position = 'fixed';
+      tmp.style.opacity = '0';
+      document.body.appendChild(tmp);
+      tmp.select();
+      try { document.execCommand('copy'); done(); } catch (e) { /* no-op */ }
+      document.body.removeChild(tmp);
+    }
+  });
+
+  // ── History clear ───────────────────────────────────────────────
+  document.getElementById('history-clear').addEventListener('click', function () {
+    history = [];
+    renderHistory();
+  });
+
+  function runPredict() {
+    var payload = getPayload();
+    if (!payload) return;
+
+    setLoading(true);
+    resultError.classList.remove('visible');
+    var startedAt = performance.now();
+
+    fetch('/predict_transaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) {
+        return r.json().then(function (body) {
+          if (!r.ok) {
+            var detail = body && body.detail
+              ? (typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail))
+              : ('Request failed with status ' + r.status);
+            throw new Error(detail);
+          }
+          return body;
+        });
+      })
+      .then(function (data) {
+        var latencyMs = Math.round(performance.now() - startedAt);
+        renderResult(data, latencyMs);
+        pushHistory(payload, data, latencyMs);
+      })
+      .catch(function (err) {
+        showError('Prediction failed: ' + err.message);
+      })
+      .finally(function () {
+        setLoading(false);
+      });
+  }
+
+  predictBtn.addEventListener('click', runPredict);
+
+  // Cmd/Ctrl+Enter submits from anywhere on the page, including while
+  // focused inside the JSON textarea or a form field — the standard
+  // shortcut convention for single-primary-action forms.
+  document.addEventListener('keydown', function (e) {
+    var isSubmitCombo = (e.metaKey || e.ctrlKey) && e.key === 'Enter';
+    if (isSubmitCombo && !predictBtn.disabled) {
+      e.preventDefault();
+      runPredict();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
