@@ -1,0 +1,36 @@
+{
+  "amount": {
+    "mean_fraud_usd": 122.21,
+    "mean_legit_usd": 88.29,
+    "median_fraud_usd": 9.25,
+    "median_legit_usd": 22.0
+  },
+  "dataset": {
+    "duplicate_rows": 1081,
+    "fraud_rate_pct": 0.1727,
+    "imbalance_ratio": 577,
+    "missing_values": 0,
+    "n_fraud": 492,
+    "n_rows": 284807
+  },
+  "decisions": [
+    "Duplicate rows retained (cannot distinguish true dupes from repeat charges)",
+    "No hour-of-day feature engineered (temporal lift too weak to justify)",
+    "Only Time and Amount require scaling; V1-V28 are pre-scaled PCA output"
+  ],
+  "generated_at_utc": "2026-07-12T17:51:50.862984+00:00",
+  "notebook": "01_eda",
+  "temporal": {
+    "low_activity_fraud_rate_pct": 0.5181,
+    "low_activity_lift": 2.999,
+    "overall_fraud_rate_pct": 0.1727
+  },
+  "top_pca_features_by_separation": [
+    "V14",
+    "V12",
+    "V3",
+    "V17",
+    "V10",
+    "V4"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "business_impact_test_set": {
+    "annualization_caveat": "Order-of-magnitude signal only - fraud volume is not uniform across the year.",
+    "fraud_value_blocked_usd": 10632.27,
+    "fraud_value_missed_usd": 1344.31,
+    "naive_annualized_estimate_usd": 1913379.0,
+    "net_value_protected_usd": 10484.27,
+    "observed_window_days": 2,
+    "review_costs_usd": 148.0
+  },
+  "calibration_caveat": "Ranking (AUPRC) is reliable; absolute probabilities may be imperfectly calibrated per the Brier score above. Dollar figures are directionally correct, not precise to the cent. CalibratedClassifierCV deferred as a documented next step.",
+  "chosen_threshold": {
+    "precision": 0.5432,
+    "recall": 0.898,
+    "selection_method": "max net business value (not F1 / accuracy)",
+    "value": 0.0933
+  },
+  "confusion_matrix": {
+    "false_negatives": 11,
+    "false_positives": 74,
+    "true_negatives": 56790,
+    "true_positives": 87
+  },
+  "generated_at_utc": "2026-07-12T18:46:28.208739+00:00",
+  "metrics": {
+    "auprc": 0.8772,
+    "auroc": 0.9815,
+    "brier_score": 0.0005,
+    "random_baseline_auprc": 0.0017
+  },
+  "near_miss_fraud_cases": {
+    "count": 11,
+    "window_below_threshold": 0.1
+  },
+  "notebook": "03_evaluation"
+}

@@ -1,0 +1,49 @@
+{
+  "artifacts": {
+    "model_path": "C:\\Users\\User\\Desktop\\Projects\\(STAGE 4) Fraud Detection API\\fraud-detection-api\\models\\fraud_model.joblib",
+    "scaler_path": "C:\\Users\\User\\Desktop\\Projects\\(STAGE 4) Fraud Detection API\\fraud-detection-api\\models\\scaler.joblib"
+  },
+  "baseline": {
+    "auprc": 0.7159,
+    "model": "LogisticRegression (class_weight=balanced)"
+  },
+  "candidate": {
+    "hand_tuned_auprc": 0.8668,
+    "improvement_over_baseline_pct": 21.1,
+    "model": "XGBClassifier"
+  },
+  "class_balance_strategy": {
+    "method": "scale_pos_weight",
+    "rejected_alternative": "SMOTE (synthetic interpolation risk in PCA space)",
+    "scale_pos_weight": 577.29
+  },
+  "cross_validation": {
+    "folds": 5,
+    "mean_auprc": 0.851,
+    "std_auprc": 0.0242,
+    "verdict": "Low variance across folds - model generalizes, not overfit to one split."
+  },
+  "generated_at_utc": "2026-07-12T18:09:14.145676+00:00",
+  "hyperparameter_search": {
+    "best_cv_auprc": 0.8462,
+    "best_params": {
+      "colsample_bytree": 0.8,
+      "learning_rate": 0.1,
+      "max_depth": 4,
+      "n_estimators": 300,
+      "subsample": 0.7
+    },
+    "cv_folds": 3,
+    "delta_vs_hand_tuned": -0.0205,
+    "n_iter": 25,
+    "verdict": "Search found a materially better configuration (delta AUPRC = -0.0205). Adopting search.best_params_ for the final model."
+  },
+  "notebook": "02_model_training",
+  "top_5_features_by_importance": [
+    "V14",
+    "V10",
+    "V4",
+    "V12",
+    "V17"
+  ]
+}
